@@ -11,11 +11,20 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Auth\StatefulGuard;
 use Symfony\Component\HttpFoundation\Request;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Auth\Events\Login as LoginEvent;
+use Illuminate\Auth\Events\Failed as FailedEvent;
+use Illuminate\Auth\Events\Attempting as AttemptingEvent;
 use Illuminate\Contracts\Cookie\QueueingFactory as CookieJar;
+use Illuminate\Auth\Events\Authenticated as AuthenticatedEvent;
 
 class SessionTokenGuard implements StatefulGuard
 {
     use GuardHelpers;
+
+    /**
+     * @var string
+     */
+    protected $name;
 
     /**
      * The session instance.
@@ -44,11 +53,13 @@ class SessionTokenGuard implements StatefulGuard
     /**
      * Create a new session token guard.
      *
-     * @param \Illuminate\Contracts\Auth\UserProvider $provider
-     * @param \Illuminate\Contracts\Session\Session   $session
+     * @param string  $name
+     * @param \Illuminate\Contracts\Auth\UserProvider  $provider
+     * @param \Illuminate\Contracts\Session\Session  $session
      */
-    public function __construct(UserProvider $provider, Session $session)
+    public function __construct($name, UserProvider $provider, Session $session)
     {
+        $this->name = $name;
         $this->provider = $provider;
         $this->session = $session;
     }
@@ -88,7 +99,7 @@ class SessionTokenGuard implements StatefulGuard
      * @return \Illuminate\Contracts\Cookie\QueueingFactory
      * @throws \RuntimeException
      */
-    public function getCookieJar()
+    public function getCookie()
     {
         if (is_null($this->cookie)) {
             throw new RuntimeException('A cookie jar has not been set.');
@@ -120,41 +131,84 @@ class SessionTokenGuard implements StatefulGuard
     }
 
     /**
+     * @return \Illuminate\Contracts\Auth\UserProvider
+     */
+    public function getProvider()
+    {
+        return $this->provider;
+    }
+
+    /**
      * Get the currently authenticated user.
      *
      * @return \Illuminate\Contracts\Auth\Authenticatable|null
      */
     public function user()
     {
-        // @todo: fire events
-
         // If the user has already been fetched, just re-use it.
         if (! is_null($this->user)) {
             return $this->user;
         }
 
-        if (! $sessionToken = $this->loadSessionToken()) {
+        if (! $sessionToken = $this->sessionToken()) {
             return;
         }
 
-        return $this->user = $sessionToken->authenticatable;
+        $this->user = $sessionToken->getAuthenticatable(
+            $this->getUserModelClass()
+        );
+
+        if (! is_null($this->user)) {
+            $this->fireAuthenticatedEvent($this->user);
+        }
+
+        return $this->user;
+    }
+
+    /**
+     * Set the current user.
+     *
+     * @param  \Illuminate\Contracts\Auth\Authenticatable  $user
+     * @return $this
+     */
+    public function setUser(Authenticatable $user)
+    {
+        $this->user = $user;
+
+        $this->fireAuthenticatedEvent($user);
+
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    protected function getUserModelClass()
+    {
+        $provider = config("auth.guards.{$this->name}.provider");
+
+        return config("auth.providers.{$provider}.model");
     }
 
     /**
      * @return \Alfheim\SessionTokenGuard\SessionToken|null
      */
-    protected function loadSessionToken()
+    public function sessionToken()
     {
+        if (property_exists($this, 'sessionToken')) {
+            return $this->sessionToken;
+        }
+
         $recallerName = $this->getRecallerName();
 
         $recallerValue = $this->request->cookies->get($recallerName) ?:
                          $this->session->get($recallerName);
 
         if (! $recallerValue) {
-            return;
+            return $this->sessionToken = null;
         }
 
-        return SessionToken::findByRecaller($recallerValue);
+        return $this->sessionToken = SessionToken::findByRecaller($recallerValue);
     }
 
     /**
@@ -180,7 +234,7 @@ class SessionTokenGuard implements StatefulGuard
      */
     public function attempt(array $credentials = [], $remember = false)
     {
-        // @todo: fire events
+        $this->fireAttemptEvent($credentials, $remember);
 
         $user = $this->provider->retrieveByCredentials($credentials);
 
@@ -189,6 +243,8 @@ class SessionTokenGuard implements StatefulGuard
 
             return true;
         }
+
+        $this->fireFailedEvent($user, $credentials);
 
         return false;
     }
@@ -213,7 +269,7 @@ class SessionTokenGuard implements StatefulGuard
      */
     public function once(array $credentials = [])
     {
-        // @todo: fire events
+        $this->fireAttemptEvent($credentials);
 
         $user = $this->provider->retrieveByCredentials($credentials);
 
@@ -235,8 +291,6 @@ class SessionTokenGuard implements StatefulGuard
      */
     public function login(Authenticatable $user, $remember = false)
     {
-        // @todo: fire events
-
         $sessionToken = $this->createSessionToken($user);
 
         if ($remember) {
@@ -245,16 +299,18 @@ class SessionTokenGuard implements StatefulGuard
             $this->storeRecallerInSession($sessionToken);
         }
 
+        $this->fireLoginEvent($user, $remember);
+
         $this->setUser($user);
     }
 
     protected function storeRecallerInCookieJar(SessionToken $sessionToken)
     {
-        $cookie = $this->getCookieJar()->forever(
+        $cookie = $this->getCookie()->forever(
             $this->getRecallerName(), $sessionToken->recaller
         );
 
-        $this->getCookieJar()->queue($cookie);
+        $this->getCookie()->queue($cookie);
     }
 
     protected function storeRecallerInSession(SessionToken $sessionToken)
@@ -267,7 +323,7 @@ class SessionTokenGuard implements StatefulGuard
      */
     protected function getRecallerName()
     {
-        return 'session_'.md5(static::class);
+        return $this->name.'_'.md5(static::class);
     }
 
     /**
@@ -281,8 +337,8 @@ class SessionTokenGuard implements StatefulGuard
         return tap((new SessionToken)->forceFill([
             'secret'             => Str::random(60),
             'authenticatable_id' => $user->getAuthIdentifier(),
-            'ip_address'         => $request->ip(),
-            'user_agent'         => $request->header('User-Agent', null),
+            'ip_address'         => $request->getClientIp(),
+            'user_agent'         => $request->headers->get('User-Agent', null),
         ]))->save();
     }
 
@@ -338,6 +394,87 @@ class SessionTokenGuard implements StatefulGuard
      */
     public function logout()
     {
-        throw new \Exception('Method not implemented');
+        $sessionToken = $this->sessionToken();
+        $user = $this->user();
+
+        $this->clearUserDataFromStorage();
+
+        unset($this->sessionToken);
+        $this->user = null;
+    }
+
+    /**
+     * @return void
+     */
+    protected function clearUserDataFromStorage()
+    {
+        $recallerName = $this->getRecallerName();
+
+        if ($this->session->has($recallerName)) {
+            $this->session->remove($recallerName);
+        }
+
+        if ($this->request->cookies->has($recallerName)) {
+            $this->getCookie()->queue(
+                $this->getCookie()->forget($this->getRecallerName())
+             );
+        }
+    }
+
+    /**
+     * Fire the attempt event with the arguments.
+     *
+     * @param  array  $credentials
+     * @param  bool  $remember
+     * @return void
+     */
+    protected function fireAttemptEvent(array $credentials, $remember = false)
+    {
+        if (isset($this->events)) {
+            $this->events->dispatch(new AttemptingEvent(
+                $credentials, $remember
+            ));
+        }
+    }
+
+    /**
+     * Fire the login event if the dispatcher is set.
+     *
+     * @param  \Illuminate\Contracts\Auth\Authenticatable  $user
+     * @param  bool  $remember
+     * @return void
+     */
+    protected function fireLoginEvent($user, $remember = false)
+    {
+        if (isset($this->events)) {
+            $this->events->dispatch(new LoginEvent($user, $remember));
+        }
+    }
+
+    /**
+     * Fire the authenticated event if the dispatcher is set.
+     *
+     * @param  \Illuminate\Contracts\Auth\Authenticatable  $user
+     * @return void
+     */
+    protected function fireAuthenticatedEvent($user)
+    {
+        if (isset($this->events)) {
+            $this->events->dispatch(new AuthenticatedEvent($user));
+        }
+    }
+
+    /**
+     * Fire the failed authentication attempt event with the given arguments.
+     *
+     * @param  \Illuminate\Contracts\Auth\Authenticatable|null  $user
+     * @param  array  $credentials
+     * @return void
+     */
+    protected function fireFailedEvent($user, array $credentials)
+    {
+        if (isset($this->events)) {
+            $this->events->dispatch(new FailedEvent($user, $credentials));
+        }
     }
 }

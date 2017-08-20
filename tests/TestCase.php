@@ -3,9 +3,8 @@
 namespace Alfheim\SessionTokenGuard\Tests;
 
 use Illuminate\Database\Schema\Blueprint;
-use Alfheim\SessionGuard\SessionGuardServiceProvider;
 use Orchestra\Testbench\TestCase as TestbenchTestCase;
-use Alfheim\SessionGuard\Middleware\AuthenticateSession;
+use Alfheim\SessionTokenGuard\SessionTokenGuardServiceProvider;
 
 abstract class TestCase extends TestbenchTestCase
 {
@@ -16,11 +15,13 @@ abstract class TestCase extends TestbenchTestCase
         $this->setUpDatabase();
 
         $this->withFactories(__DIR__.'/factories');
+
+        // @todo: try lower hasher rounds
     }
 
     protected function getPackageProviders($app)
     {
-        return [SessionGuardServiceProvider::class];
+        return [SessionTokenGuardServiceProvider::class];
     }
 
     protected function getEnvironmentSetUp($app)
@@ -54,9 +55,6 @@ abstract class TestCase extends TestbenchTestCase
 
     protected function setUpRoutes()
     {
-        $this->app['router']->middleware([
-            'web',
-            AuthenticateSession::class,
-        ])->group(__DIR__.'/Fixtures/routes.php');
+        $this->app['router']->middleware(['web'])->group(__DIR__.'/Fixtures/routes.php');
     }
 }

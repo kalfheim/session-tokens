@@ -1,19 +1,21 @@
 <?php
 
-namespace Alfheim\SessionGuard;
+namespace Alfheim\SessionTokenGuard;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Auth\CreatesUserProviders;
 
 class SessionTokenGuardServiceProvider extends ServiceProvider
 {
+    use CreatesUserProviders;
+
     public function boot()
     {
         $this->loadMigrationsFrom(dirname(__DIR__).'/migrations');
 
         // $this->commands(Commands\SessionTokensFlushCommand::class);
 
-        $this->registerSessionGuard();
+        $this->registerSessionTokenGuard();
     }
 
     /**
@@ -21,12 +23,12 @@ class SessionTokenGuardServiceProvider extends ServiceProvider
      *
      * @return void
      */
-    protected function registerSessionGuard()
+    protected function registerSessionTokenGuard()
     {
         // @todo: maybe use a different name?
 
         $this->app['auth']->extend('session', function ($app, $name, $config) {
-            return $this->createSessionGuard($name, $config);
+            return $this->createSessionTokenGuard($name, $config);
         });
     }
 
@@ -37,14 +39,12 @@ class SessionTokenGuardServiceProvider extends ServiceProvider
      * @param  array  $config
      * @return void
      */
-    protected function createSessionGuard($name, $config)
+    protected function createSessionTokenGuard($name, $config)
     {
-        $provider = new SessionTokenAwareUserProvider(
-            $this->createUserProvider($config['provider'])
-        );
+        $provider = $this->createUserProvider($config['provider']);
 
-        return tap(new SessionGuard($name, $provider, $this->app['session.store']), function ($guard) {
-            $guard->setCookieJar($this->app['cookie']);
+        return tap(new SessionTokenGuard($name, $provider, $this->app['session.store']), function ($guard) {
+            $guard->setCookie($this->app['cookie']);
 
             $guard->setDispatcher($this->app['events']);
 

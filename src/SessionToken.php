@@ -14,7 +14,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property \Carbon\Carbon  $created_at
  * @property \Carbon\Carbon  $updated_at
  * @property \Carbon\Carbon  $deleted_at
- * @property \Illuminate\Contracts\Auth\Authenticatable  $authenticatable
  * @property-read string  $recaller
  */
 class SessionToken extends Model
@@ -36,14 +35,6 @@ class SessionToken extends Model
     ];
 
     /**
-     * @return string
-     */
-    public function getRecallerAttribute()
-    {
-        return "{$this->id}|{$this->secret}";
-    }
-
-    /**
      * Find a session token by a recaller string.
      *
      * @param  string  $recaller
@@ -57,7 +48,7 @@ class SessionToken extends Model
 
         list($id, $secret) = explode('|', $recaller, 2);
 
-        if (! $sessionToken = static::with('authenticatable')->find($id)) {
+        if (! $sessionToken = static::find($id)) {
             return;
         }
 
@@ -67,13 +58,23 @@ class SessionToken extends Model
     }
 
     /**
-     * The Authenticatable relation.
+     * Get the related authenticatable (user) model.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\HasOne
+     * @param  string  $related  The class name of the user model.
+     * @return \Illuminate\Contracts\Auth\Authenticatable
      */
-    public function authenticatable()
+    public function getAuthenticatable($related)
     {
-        // @todo: make the model configurable
-        return $this->hasOne('App\User', 'authenticatable_id');
+        return $this->belongsTo($related, 'authenticatable_id')->getResults();
+    }
+
+    /**
+     * Attribute: Get the recaller string which will be stored in session & cookie.
+     *
+     * @return string
+     */
+    protected function getRecallerAttribute()
+    {
+        return "{$this->id}|{$this->secret}";
     }
 }
