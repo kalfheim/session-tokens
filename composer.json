@@ -1,0 +1,49 @@
+{
+    "name": "kalfheim/session-token-guard",
+    "description": "@todo",
+    "keywords": ["laravel", "authentication"],
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Kristoffer Alfheim",
+            "email": "kristoffer.alfh@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Alfheim\\SessionTokenGuard\\": "./src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Alfheim\\SessionTokenGuard\\Tests\\": "./tests"
+        }
+    },
+    "require": {
+        "php": ">=7.0",
+        "illuminate/auth": "~5.4",
+        "illuminate/console": "~5.4",
+        "illuminate/contracts": "~5.4",
+        "illuminate/database": "~5.4",
+        "illuminate/support": "~5.4",
+        "nesbot/carbon": "~1.2"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^3.4",
+        "phpunit/phpunit": "~5.7"
+    },
+    "scripts": {
+        "test": "phpunit --colors=always"
+    },
+    "extra": {
+        "providers": [
+            "Alfheim\\SessionTokenGuard\\SessionTokenGuardServiceProvider"
+        ]
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
