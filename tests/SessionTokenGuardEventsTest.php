@@ -25,12 +25,16 @@ class SessionTokenGuardEventsTest extends TestCase
     {
         $user = factory(User::class)->create(['email' => 'foo@example.com']);
         factory(User::class)->create();
+
         $credentials = ['email' => 'foo@example.com', 'password' => 'secret'];
+
         Auth::guard()->attempt($credentials, true);
+
         Event::assertDispatched(Attempting::class, function ($e) use ($credentials) {
             return $e->credentials === $credentials &&
                 $e->remember === true;
         });
+
         Event::assertDispatched(Login::class, function ($e) use ($user) {
             return $e->user->id === $user->id && $e->remember === true;
         });
@@ -40,12 +44,16 @@ class SessionTokenGuardEventsTest extends TestCase
     public function it_should_fire_events_when_attempt_is_unsuccessful()
     {
         factory(User::class)->create(['email' => 'foo@example.com']);
+
         $credentials = ['email' => 'foo@example.com', 'password' => 'wrong'];
+
         Auth::guard()->attempt($credentials, false);
+
         Event::assertDispatched(Attempting::class, function ($e) use ($credentials) {
             return $e->credentials === $credentials &&
                 $e->remember === false;
         });
+
         Event::assertDispatched(Failed::class, function ($e) use ($credentials) {
             return $e->credentials === $credentials;
         });
@@ -56,7 +64,9 @@ class SessionTokenGuardEventsTest extends TestCase
     {
         $user = factory(User::class)->create();
         factory(User::class)->create();
+
         Auth::guard()->setUser($user);
+
         Event::assertDispatched(Authenticated::class, function ($e) use ($user) {
             return $e->user->id === $user->id;
         });
@@ -67,7 +77,9 @@ class SessionTokenGuardEventsTest extends TestCase
     {
         $this->be($user = factory(User::class)->create());
         factory(User::class)->create();
+
         Auth::guard()->logout();
+
         Event::assertDispatched(Logout::class, function ($e) use ($user) {
             return $e->user->id === $user->id;
         });

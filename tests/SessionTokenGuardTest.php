@@ -21,24 +21,29 @@ class SessionTokenGuardTest extends TestCase
     public function it_should_deny_when_credentials_are_incorrect()
     {
         factory(User::class)->create(['email' => 'foo@example.com']);
+
         $this->post('login', ['email' => 'foo@example.com', 'password' => 'wrong'])
              ->assertSee('Bad credentials');
-        $this->dontSeeIsAuthenticated();
+
+        $this->assertGuest();
     }
 
     /** @test */
     public function it_should_authenticate_when_credentials_match()
     {
         factory(User::class)->create(['email' => 'foo@example.com']);
+
         $this->post('login', ['email' => 'foo@example.com', 'password' => 'secret'])
              ->assertSee('Great success');
-        $this->seeIsAuthenticated();
+
+        $this->assertAuthenticated();
     }
 
     /** @test */
     public function it_should_store_recaller_in_session_when_remember_is_not_checked()
     {
         $user = factory(User::class)->create();
+
         $this->post('login', ['email' => $user->email, 'password' => 'secret'])
              ->assertSee('Great success')
              ->assertSessionHas(Auth::guard()->getRecallerName());
@@ -50,6 +55,7 @@ class SessionTokenGuardTest extends TestCase
     public function it_should_store_recaller_in_cookie_when_remember_is_checked()
     {
         $user = factory(User::class)->create();
+
         $this->post('login', ['email' => $user->email, 'password' => 'secret', 'remember' => 'yes'])
              ->assertSee('Great success')
              ->assertCookie(Auth::guard()->getRecallerName())
@@ -61,7 +67,9 @@ class SessionTokenGuardTest extends TestCase
     {
         $sessionToken = factory(SessionToken::class)->create();
         $user = $sessionToken->getAuthenticatable(User::class);
+
         app('session.store')->put(Auth::guard()->getRecallerName(), $sessionToken->recaller);
+
         $this->get('me')->assertJson($user->toArray());
     }
 
@@ -70,6 +78,7 @@ class SessionTokenGuardTest extends TestCase
     {
         $sessionToken = factory(SessionToken::class)->create();
         $user = $sessionToken->getAuthenticatable(User::class);
+
         $this->call('GET', 'me', [], [
             Auth::guard()->getRecallerName() => encrypt($sessionToken->recaller),
         ])->assertJson($user->toArray());
@@ -80,7 +89,9 @@ class SessionTokenGuardTest extends TestCase
     {
         $user = factory(User::class)->create();
         factory(User::class)->create();
+
         $this->be($user);
+
         $this->get('me')->assertJson($user->toArray());
     }
 
@@ -89,6 +100,7 @@ class SessionTokenGuardTest extends TestCase
     {
         $user = factory(User::class)->create();
         factory(User::class)->create();
+
         $this->actingAs($user)->get('me')->assertJson($user->toArray());
     }
 
@@ -96,8 +108,12 @@ class SessionTokenGuardTest extends TestCase
     public function it_clears_session_recaller_when_logging_out()
     {
         $sessionToken = factory(SessionToken::class)->create();
+
         app('session.store')->put(Auth::guard()->getRecallerName(), $sessionToken->recaller);
-        $this->get('logout')->assertSuccessful()->assertSessionMissing(Auth::guard()->getRecallerName());
+
+        $this->get('logout')
+             ->assertSuccessful()
+             ->assertSessionMissing(Auth::guard()->getRecallerName());
     }
 
     /** @test */
@@ -105,23 +121,30 @@ class SessionTokenGuardTest extends TestCase
     {
         $sessionToken = factory(SessionToken::class)->create();
         $user = $sessionToken->getAuthenticatable(User::class);
+
         $this->call('GET', 'me', [], [
             Auth::guard()->getRecallerName() => encrypt($sessionToken->recaller),
         ])->assertJson($user->toArray());
-        $this->seeIsAuthenticatedAs($user);
+
+        $this->assertAuthenticatedAs($user);
+
         $this->call('GET', 'logout', [], [
             Auth::guard()->getRecallerName() => encrypt($sessionToken->recaller),
         ])->assertSuccessful()
           ->assertCookieIsCleared(Auth::guard()->getRecallerName());
-        $this->dontSeeIsAuthenticated();
+
+        $this->assertGuest();
     }
 
     /** @test */
     public function it_should_delete_the_session_token_when_logging_out()
     {
         $sessionToken = factory(SessionToken::class)->create();
+
         app('session.store')->put(Auth::guard()->getRecallerName(), $sessionToken->recaller);
+
         $this->get('logout')->assertSuccessful();
+
         $this->assertSoftDeleted($sessionToken->getTable(), ['id' => $sessionToken->id]);
     }
 
@@ -130,10 +153,18 @@ class SessionTokenGuardTest extends TestCase
     {
         $user = factory(User::class)->create();
         factory(User::class)->create();
-        $this->assertFalse(Auth::guard()->once(['email' => $user->email, 'password' => 'wrong']));
-        $this->dontSeeIsAuthenticated();
-        $this->assertTrue(Auth::guard()->once(['email' => $user->email, 'password' => 'secret']));
-        $this->seeIsAuthenticatedAs($user);
+
+        $this->assertFalse(
+            Auth::guard()->once(['email' => $user->email, 'password' => 'wrong'])
+        );
+
+        $this->assertGuest();
+
+        $this->assertTrue(
+            Auth::guard()->once(['email' => $user->email, 'password' => 'secret'])
+        );
+
+        $this->assertAuthenticatedAs($user);
     }
 
     /** @test */
@@ -141,10 +172,12 @@ class SessionTokenGuardTest extends TestCase
     {
         $user = factory(User::class)->create();
         factory(User::class)->create();
+
         $this->assertFalse(Auth::guard()->onceUsingId(9001));
-        $this->dontSeeIsAuthenticated();
+        $this->assertGuest();
+
         $this->assertSame($user->id, Auth::guard()->onceUsingId($user->id)->id);
-        $this->seeIsAuthenticatedAs($user);
+        $this->assertAuthenticatedAs($user);
     }
 
     /** @test */
@@ -152,9 +185,15 @@ class SessionTokenGuardTest extends TestCase
     {
         $user = factory(User::class)->create();
         factory(User::class)->create();
+
         $this->assertFalse(Auth::guard()->loginUsingId(9001));
+
         $this->assertSame($user->id, Auth::guard()->loginUsingId($user->id)->id);
-        $this->assertSame($user->sessionTokens()->first()->recaller, app('session.store')->get(Auth::guard()->getRecallerName()));
+
+        $this->assertSame(
+            $user->sessionTokens()->first()->recaller,
+            app('session.store')->get(Auth::guard()->getRecallerName())
+        );
     }
 
     /** @test */
@@ -162,8 +201,16 @@ class SessionTokenGuardTest extends TestCase
     {
         $user = factory(User::class)->create();
         factory(User::class)->create();
+
         $this->assertFalse(Auth::guard()->loginUsingId(9001));
-        $this->assertSame($user->id, Auth::guard()->loginUsingId($user->id, true)->id);
-        $this->assertTrue($this->app['cookie']->hasQueued(Auth::guard()->getRecallerName()));
+
+        $this->assertSame(
+            $user->id,
+            Auth::guard()->loginUsingId($user->id, true)->id
+        );
+
+        $this->assertTrue(
+            $this->app['cookie']->hasQueued(Auth::guard()->getRecallerName())
+        );
     }
 }
