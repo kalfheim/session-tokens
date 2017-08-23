@@ -2,6 +2,7 @@
 
 namespace Alfheim\SessionTokenGuard\Tests;
 
+use Carbon\Carbon;
 use PHPUnit\Framework\Assert as PHPUnit;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\TestResponse;
@@ -21,6 +22,15 @@ abstract class TestCase extends TestbenchTestCase
         $this->setUpRoutes();
 
         $this->withFactories(__DIR__.'/factories');
+
+        Carbon::setTestNow(null);
+
+        TestResponse::macro('assertCookieIsNotQueued', function ($cookieName) {
+            PHPUnit::assertNull(
+                $this->getCookie($cookieName),
+                "Cookie [{$cookieName}] is unexpectedly present on response."
+            );
+        });
 
         TestResponse::macro('assertCookieIsCleared', function ($cookieName) {
             PHPUnit::assertTrue(

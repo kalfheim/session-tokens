@@ -2,11 +2,13 @@
 
 namespace Alfheim\SessionTokenGuard\Tests;
 
+use Carbon\Carbon;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Auth\Events\Attempting;
 use Alfheim\SessionTokenGuard\SessionToken;
+use Symfony\Component\HttpFoundation\Request;
 use Alfheim\SessionTokenGuard\SessionTokenGuard;
 
 class SessionTokenGuardTest extends TestCase
@@ -46,9 +48,8 @@ class SessionTokenGuardTest extends TestCase
 
         $this->post('login', ['email' => $user->email, 'password' => 'secret'])
              ->assertSee('Great success')
-             ->assertSessionHas(Auth::guard()->getRecallerName());
-             // @todo
-             // ->assertCookieMissing(Auth::guard()->getRecallerName());
+             ->assertSessionHas(Auth::guard()->getRecallerName())
+             ->assertCookieIsNotQueued(Auth::guard()->getRecallerName());
     }
 
     /** @test */
@@ -212,5 +213,72 @@ class SessionTokenGuardTest extends TestCase
         $this->assertTrue(
             $this->app['cookie']->hasQueued(Auth::guard()->getRecallerName())
         );
+    }
+
+    /** @test */
+    public function it_should_refresh_the_session_token_data_at_a_given_rate()
+    {
+        $this->assertUpdatedAtGetsUpdated(60);
+    }
+
+    /** @test */
+    public function it_should_refresh_the_session_token_data_at_a_given_rate_which_is_configurable()
+    {
+        app('config')->set('auth.session_tokens.refresh_rate', 10);
+
+        $this->assertUpdatedAtGetsUpdated(10);
+    }
+
+    /** @test */
+    public function it_should_update_user_agent_and_ip_if_they_change()
+    {
+        $sessionToken = factory(SessionToken::class)->create([
+            'ip_address' => '69.69.69.69',
+            'user_agent' => 'An Actual Space Ship',
+        ]);
+
+        app('session.store')->put(Auth::guard()->getRecallerName(), $sessionToken->recaller);
+        Auth::guard()->user();
+
+        $sessionToken = $sessionToken->fresh();
+
+        $this->assertSame($this->getTestIp(), $sessionToken->ip_address);
+        $this->assertSame($this->getTestUserAgent(), $sessionToken->user_agent);
+    }
+
+    protected function assertUpdatedAtGetsUpdated($seconds)
+    {
+        $now = Carbon::now();
+
+        // Rewind the time...
+        Carbon::setTestNow((clone $now)->subSeconds($seconds));
+
+        $sessionToken = factory(SessionToken::class)->create([
+            'ip_address' => $this->getTestIp(),
+            'user_agent' => $this->getTestUserAgent(),
+        ]);
+
+        // Reset the time...
+        Carbon::setTestNow(clone $now);
+
+        $this->assertSame($seconds, $sessionToken->updated_at->diffInSeconds($now));
+
+        app('session.store')->put(Auth::guard()->getRecallerName(), $sessionToken->recaller);
+        Auth::guard()->user();
+
+        $this->assertSame(
+            $now->timestamp,
+            $sessionToken->fresh()->updated_at->timestamp
+        );
+    }
+
+    protected function getTestIp()
+    {
+        return Request::create('')->getClientIp();
+    }
+
+    protected function getTestUserAgent()
+    {
+        return Request::create('')->headers->get('User-Agent', null);
     }
 }

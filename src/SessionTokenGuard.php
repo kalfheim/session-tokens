@@ -2,6 +2,7 @@
 
 namespace Alfheim\SessionTokenGuard;
 
+use Carbon\Carbon;
 use RuntimeException;
 use Illuminate\Support\Str;
 use Illuminate\Auth\GuardHelpers;
@@ -23,6 +24,8 @@ class SessionTokenGuard implements StatefulGuard
     use GuardHelpers;
 
     /**
+     * The "name" of this guard instance (from the application configuration.)
+     *
      * @var string
      */
     protected $name;
@@ -42,11 +45,15 @@ class SessionTokenGuard implements StatefulGuard
     protected $request;
 
     /**
+     * The cookie jar instance.
+     *
      * @var \Illuminate\Contracts\Cookie\QueueingFactory
      */
     protected $cookie;
 
     /**
+     * The event dispatcher.
+     *
      * @var \Illuminate\Contracts\Events\Dispatcher
      */
     protected $events;
@@ -66,6 +73,8 @@ class SessionTokenGuard implements StatefulGuard
     }
 
     /**
+     * Set the incoming HTTP request instance.
+     *
      * @param  \Symfony\Component\HttpFoundation\Request $request
      * @return void
      */
@@ -75,6 +84,8 @@ class SessionTokenGuard implements StatefulGuard
     }
 
     /**
+     * Get the incoming HTTP request instance.
+     *
      * @return \Symfony\Component\HttpFoundation\Request
      * @throws \RuntimeException
      */
@@ -88,6 +99,8 @@ class SessionTokenGuard implements StatefulGuard
     }
 
     /**
+     * Set the cookie jar instance.
+     *
      * @param  \Illuminate\Contracts\Cookie\QueueingFactory $cookieJar
      * @return void
      */
@@ -97,6 +110,8 @@ class SessionTokenGuard implements StatefulGuard
     }
 
     /**
+     * Get the cookie jar instance.
+     *
      * @return \Illuminate\Contracts\Cookie\QueueingFactory
      * @throws \RuntimeException
      */
@@ -110,6 +125,8 @@ class SessionTokenGuard implements StatefulGuard
     }
 
     /**
+     * Set the event dispatcher instance.
+     *
      * @param  \Illuminate\Contracts\Events\Dispatcher  $events
      * @return void
      */
@@ -119,6 +136,8 @@ class SessionTokenGuard implements StatefulGuard
     }
 
     /**
+     * Get the event dispatcher instance.
+     *
      * @return \Illuminate\Contracts\Events\Dispatcher
      * @throws \RuntimeException
      */
@@ -132,6 +151,8 @@ class SessionTokenGuard implements StatefulGuard
     }
 
     /**
+     * Get the configured user provider instance.
+     *
      * @return \Illuminate\Contracts\Auth\UserProvider
      */
     public function getProvider()
@@ -159,6 +180,8 @@ class SessionTokenGuard implements StatefulGuard
             $this->getUserModelClass()
         );
 
+        $this->touchSessionToken();
+
         if (! is_null($this->user)) {
             $this->fireAuthenticatedEvent($this->user);
         }
@@ -182,16 +205,8 @@ class SessionTokenGuard implements StatefulGuard
     }
 
     /**
-     * @return string
-     */
-    protected function getUserModelClass()
-    {
-        $provider = config("auth.guards.{$this->name}.provider");
-
-        return config("auth.providers.{$provider}.model");
-    }
-
-    /**
+     * Get the session token related to the incoming HTTP request.
+     *
      * @return \Alfheim\SessionTokenGuard\SessionToken|null
      */
     public function sessionToken()
@@ -251,18 +266,6 @@ class SessionTokenGuard implements StatefulGuard
     }
 
     /**
-     * Determine if the user matches the credentials.
-     *
-     * @param  mixed  $user
-     * @param  array  $credentials
-     * @return bool
-     */
-    protected function hasValidCredentials($user, array $credentials)
-    {
-        return ! is_null($user) && $this->provider->validateCredentials($user, $credentials);
-    }
-
-    /**
      * Log a user into the application without sessions or cookies.
      *
      * @param  array  $credentials
@@ -305,42 +308,14 @@ class SessionTokenGuard implements StatefulGuard
         $this->setUser($user);
     }
 
-    protected function storeRecallerInCookieJar(SessionToken $sessionToken)
-    {
-        $cookie = $this->getCookieJar()->forever(
-            $this->getRecallerName(), $sessionToken->recaller
-        );
-
-        $this->getCookieJar()->queue($cookie);
-    }
-
-    protected function storeRecallerInSession(SessionToken $sessionToken)
-    {
-        $this->session->put($this->getRecallerName(), $sessionToken->recaller);
-    }
-
     /**
+     * Get the name of the recaller for use in cookie and session.
+     *
      * @return string
      */
     public function getRecallerName()
     {
         return $this->name.'_'.md5(static::class);
-    }
-
-    /**
-     * @param  \Illuminate\Contracts\Auth\Authenticatable  $user
-     * @return \Alfheim\SessionTokenGuard\SessionToken
-     */
-    protected function createSessionToken($user)
-    {
-        $request = $this->getRequest();
-
-        return tap((new SessionToken)->forceFill([
-            'secret'             => Str::random(60),
-            'authenticatable_id' => $user->getAuthIdentifier(),
-            'ip_address'         => $request->getClientIp(),
-            'user_agent'         => $request->headers->get('User-Agent', null),
-        ]))->save();
     }
 
     /**
@@ -414,6 +389,66 @@ class SessionTokenGuard implements StatefulGuard
     }
 
     /**
+     * Determine if the user matches the credentials.
+     *
+     * @param  mixed  $user
+     * @param  array  $credentials
+     * @return bool
+     */
+    protected function hasValidCredentials($user, array $credentials)
+    {
+        return ! is_null($user) && $this->provider->validateCredentials($user, $credentials);
+    }
+
+    /**
+     * Create a fresh session token for new logins.
+     *
+     * @param  \Illuminate\Contracts\Auth\Authenticatable  $user
+     * @return \Alfheim\SessionTokenGuard\SessionToken
+     */
+    protected function createSessionToken($user)
+    {
+        $request = $this->getRequest();
+
+        return tap((new SessionToken)->forceFill([
+            'secret'             => Str::random(60),
+            'authenticatable_id' => $user->getAuthIdentifier(),
+            'ip_address'         => $request->getClientIp(),
+            'user_agent'         => $request->headers->get('User-Agent', null),
+        ]))->save();
+    }
+
+    /**
+     * Store the session token's recaller string in a cookie and queue it. This
+     * is only done when the "remember me" option is used.
+     *
+     * @param \Alfheim\SessionTokenGuard\SessionToken  $sessionToken
+     * @return void
+     */
+    protected function storeRecallerInCookieJar(SessionToken $sessionToken)
+    {
+        $cookie = $this->getCookieJar()->forever(
+            $this->getRecallerName(), $sessionToken->recaller
+        );
+
+        $this->getCookieJar()->queue($cookie);
+    }
+
+    /**
+     * Store the session token's recaller string in the local session. This is
+     * the method used when the "remember me" option is *not* used.
+     *
+     * @param \Alfheim\SessionTokenGuard\SessionToken  $sessionToken
+     * @return void
+     */
+    protected function storeRecallerInSession(SessionToken $sessionToken)
+    {
+        $this->session->put($this->getRecallerName(), $sessionToken->recaller);
+    }
+
+    /**
+     * Clear some data after logging out.
+     *
      * @return void
      */
     protected function clearUserDataFromStorage()
@@ -429,6 +464,61 @@ class SessionTokenGuard implements StatefulGuard
                 $this->getCookieJar()->forget($this->getRecallerName())
             );
         }
+    }
+
+    /**
+     * "Touch" the session token in order to update the updated_at timestamp,
+     * IP address etc.
+     *
+     * @return void
+     */
+    protected function touchSessionToken()
+    {
+        if (is_null($sessionToken = $this->sessionToken())) {
+            return;
+        }
+
+        $request = $this->getRequest();
+
+        if ($sessionToken->updated_at->diffInSeconds() >= $this->getSessionTokenRefreshRate()) {
+            $sessionToken->updated_at = Carbon::now();
+        }
+
+        if ($sessionToken->ip_address !== $request->getClientIp()) {
+            $sessionToken->ip_address = $request->getClientIp();
+        }
+
+        if ($sessionToken->user_agent !== $request->headers->get('User-Agent', null)) {
+            $sessionToken->user_agent = $request->headers->get('User-Agent', null);
+        }
+
+        if ($sessionToken->isDirty()) {
+            $sessionToken->save();
+        }
+    }
+
+    /**
+     * Get the number of seconds for which the session token `updated_at` value
+     * should be refreshed.
+     *
+     * @return int
+     */
+    protected function getSessionTokenRefreshRate()
+    {
+        return config('auth.session_tokens.refresh_rate', 60);
+    }
+
+    /**
+     * Get the class name of the Eloquent model which is configured with the
+     * user provider.
+     *
+     * @return string
+     */
+    protected function getUserModelClass()
+    {
+        $provider = config("auth.guards.{$this->name}.provider");
+
+        return config("auth.providers.{$provider}.model");
     }
 
     /**
