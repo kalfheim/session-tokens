@@ -13,6 +13,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Auth\Events\Login as LoginEvent;
 use Illuminate\Auth\Events\Failed as FailedEvent;
+use Illuminate\Auth\Events\Logout as LogoutEvent;
 use Illuminate\Auth\Events\Attempting as AttemptingEvent;
 use Illuminate\Contracts\Cookie\QueueingFactory as CookieJar;
 use Illuminate\Auth\Events\Authenticated as AuthenticatedEvent;
@@ -87,25 +88,25 @@ class SessionTokenGuard implements StatefulGuard
     }
 
     /**
-     * @param  \Illuminate\Contracts\Cookie\QueueingFactory $cookie
+     * @param  \Illuminate\Contracts\Cookie\QueueingFactory $cookieJar
      * @return void
      */
-    public function setCookie(CookieJar $cookie)
+    public function setCookieJar(CookieJar $cookieJar)
     {
-        $this->cookie = $cookie;
+        $this->cookieJar = $cookieJar;
     }
 
     /**
      * @return \Illuminate\Contracts\Cookie\QueueingFactory
      * @throws \RuntimeException
      */
-    public function getCookie()
+    public function getCookieJar()
     {
-        if (is_null($this->cookie)) {
+        if (is_null($this->cookieJar)) {
             throw new RuntimeException('A cookie jar has not been set.');
         }
 
-        return $this->cookie;
+        return $this->cookieJar;
     }
 
     /**
@@ -306,11 +307,11 @@ class SessionTokenGuard implements StatefulGuard
 
     protected function storeRecallerInCookieJar(SessionToken $sessionToken)
     {
-        $cookie = $this->getCookie()->forever(
+        $cookie = $this->getCookieJar()->forever(
             $this->getRecallerName(), $sessionToken->recaller
         );
 
-        $this->getCookie()->queue($cookie);
+        $this->getCookieJar()->queue($cookie);
     }
 
     protected function storeRecallerInSession(SessionToken $sessionToken)
@@ -321,7 +322,7 @@ class SessionTokenGuard implements StatefulGuard
     /**
      * @return string
      */
-    protected function getRecallerName()
+    public function getRecallerName()
     {
         return $this->name.'_'.md5(static::class);
     }
@@ -347,7 +348,7 @@ class SessionTokenGuard implements StatefulGuard
      *
      * @param  mixed  $id
      * @param  bool   $remember
-     * @return \Illuminate\Contracts\Auth\Authenticatable
+     * @return \Illuminate\Contracts\Auth\Authenticatable|false
      */
     public function loginUsingId($id, $remember = false)
     {
@@ -364,7 +365,7 @@ class SessionTokenGuard implements StatefulGuard
      * Log the given user ID into the application without sessions or cookies.
      *
      * @param  mixed  $id
-     * @return bool
+     * @return \Illuminate\Contracts\Auth\Authenticatable|false
      */
     public function onceUsingId($id)
     {
@@ -384,7 +385,8 @@ class SessionTokenGuard implements StatefulGuard
      */
     public function viaRemember()
     {
-        throw new \Exception('Method not implemented');
+        // @todo: figure out if it really matters what this returns
+        return false;
     }
 
     /**
@@ -398,6 +400,14 @@ class SessionTokenGuard implements StatefulGuard
         $user = $this->user();
 
         $this->clearUserDataFromStorage();
+
+        if (! is_null($sessionToken)) {
+            $sessionToken->delete();
+        }
+
+        if (isset($this->events)) {
+            $this->events->dispatch(new LogoutEvent($user));
+        }
 
         unset($this->sessionToken);
         $this->user = null;
@@ -415,9 +425,9 @@ class SessionTokenGuard implements StatefulGuard
         }
 
         if ($this->request->cookies->has($recallerName)) {
-            $this->getCookie()->queue(
-                $this->getCookie()->forget($this->getRecallerName())
-             );
+            $this->getCookieJar()->queue(
+                $this->getCookieJar()->forget($this->getRecallerName())
+            );
         }
     }
 

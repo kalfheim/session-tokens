@@ -2,7 +2,9 @@
 
 namespace Alfheim\SessionTokenGuard\Tests;
 
+use PHPUnit\Framework\Assert as PHPUnit;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Foundation\Testing\TestResponse;
 use Orchestra\Testbench\TestCase as TestbenchTestCase;
 use Alfheim\SessionTokenGuard\SessionTokenGuardServiceProvider;
 
@@ -12,11 +14,20 @@ abstract class TestCase extends TestbenchTestCase
     {
         parent::setUp();
 
+        app('hash')->setRounds(4);
+
         $this->setUpDatabase();
+
+        $this->setUpRoutes();
 
         $this->withFactories(__DIR__.'/factories');
 
-        // @todo: try lower hasher rounds
+        TestResponse::macro('assertCookieIsCleared', function ($cookieName) {
+            PHPUnit::assertTrue(
+                $this->getCookie($cookieName)->isCleared(),
+                "Cookie [{$cookieName}] is expected to be cleared."
+            );
+        });
     }
 
     protected function getPackageProviders($app)
@@ -55,6 +66,9 @@ abstract class TestCase extends TestbenchTestCase
 
     protected function setUpRoutes()
     {
-        $this->app['router']->middleware(['web'])->group(__DIR__.'/Fixtures/routes.php');
+        $this->app['router']->middleware([
+            'web',
+            \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
+        ])->group(__DIR__.'/Fixtures/routes.php');
     }
 }

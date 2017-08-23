@@ -44,7 +44,7 @@ class SessionTokenGuardServiceProvider extends ServiceProvider
         $provider = $this->createUserProvider($config['provider']);
 
         return tap(new SessionTokenGuard($name, $provider, $this->app['session.store']), function ($guard) {
-            $guard->setCookie($this->app['cookie']);
+            $guard->setCookieJar($this->app['cookie']);
 
             $guard->setDispatcher($this->app['events']);
 
