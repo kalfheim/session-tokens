@@ -2,7 +2,7 @@
 
 namespace Alfheim\SessionTokenGuard\Tests;
 
-use Carbon\Carbon;
+use Illuminate\Support\Carbon;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Support\Facades\Auth;

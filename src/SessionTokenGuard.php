@@ -2,9 +2,9 @@
 
 namespace Alfheim\SessionTokenGuard;
 
-use Carbon\Carbon;
 use RuntimeException;
 use Illuminate\Support\Str;
+use Illuminate\Support\Carbon;
 use Illuminate\Auth\GuardHelpers;
 use Illuminate\Contracts\Session\Session;
 use Illuminate\Contracts\Auth\UserProvider;

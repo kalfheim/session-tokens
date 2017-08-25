@@ -64,4 +64,14 @@ class SessionTokenGuardServiceProvider extends ServiceProvider
             $guard->setRequest($this->app->refresh('request', $guard, 'setRequest'));
         });
     }
+
+    /**
+     * Get the name to be used for the guard driver.
+     *
+     * @return string
+     */
+    protected function getDriverName()
+    {
+        return $this->app['config']->get('auth.session_token_guard_driver', 'session');
+    }
 }

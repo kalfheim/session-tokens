@@ -2,7 +2,7 @@
 
 namespace Alfheim\SessionTokenGuard\Tests;
 
-use Carbon\Carbon;
+use Illuminate\Support\Carbon;
 use PHPUnit\Framework\Assert as PHPUnit;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\TestResponse;
