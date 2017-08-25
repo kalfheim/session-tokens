@@ -4,12 +4,9 @@ namespace Alfheim\SessionTokenGuard\Tests;
 
 use Illuminate\Support\Carbon;
 use Illuminate\Auth\Events\Login;
-use Illuminate\Auth\Events\Failed;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Auth\Events\Attempting;
 use Alfheim\SessionTokenGuard\SessionToken;
 use Symfony\Component\HttpFoundation\Request;
-use Alfheim\SessionTokenGuard\SessionTokenGuard;
 
 class SessionTokenGuardTest extends TestCase
 {

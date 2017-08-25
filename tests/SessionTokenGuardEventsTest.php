@@ -8,7 +8,6 @@ use Illuminate\Auth\Events\Logout;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Auth\Events\Attempting;
-use Alfheim\SessionTokenGuard\Tests\User;
 use Illuminate\Auth\Events\Authenticated;
 
 class SessionTokenGuardEventsTest extends TestCase
