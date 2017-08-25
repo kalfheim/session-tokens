@@ -24,7 +24,7 @@ class SessionTokenGuard implements StatefulGuard
     use GuardHelpers;
 
     /**
-     * The "name" of this guard instance (from the application configuration.)
+     * The "name" of this guard instance (from the application configuration.).
      *
      * @var string
      */

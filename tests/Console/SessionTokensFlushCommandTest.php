@@ -22,7 +22,7 @@ class SessionTokensFlushCommandTest extends TestCase
 
         foreach ($old as $sessionToken) {
             $this->assertSoftDeleted((new SessionToken)->getTable(), [
-                'id' => $sessionToken->id
+                'id' => $sessionToken->id,
             ]);
         }
 
