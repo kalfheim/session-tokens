@@ -4,6 +4,7 @@ namespace Alfheim\SessionTokenGuard;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Auth\CreatesUserProviders;
+use Alfheim\SessionTokenGuard\Console\SessionTokensFlushCommand;
 
 class SessionTokenGuardServiceProvider extends ServiceProvider
 {
@@ -11,11 +12,11 @@ class SessionTokenGuardServiceProvider extends ServiceProvider
 
     public function boot()
     {
+        $this->registerSessionTokenGuard();
+
         $this->loadMigrationsFrom(dirname(__DIR__).'/migrations');
 
-        // $this->commands(Commands\SessionTokensFlushCommand::class);
-
-        $this->registerSessionTokenGuard();
+        $this->registerCommands();
     }
 
     /**
@@ -25,11 +26,23 @@ class SessionTokenGuardServiceProvider extends ServiceProvider
      */
     protected function registerSessionTokenGuard()
     {
-        // @todo: maybe use a different name?
+        $driver = $this->getDriverName();
 
-        $this->app['auth']->extend('session', function ($app, $name, $config) {
+        $this->app['auth']->extend($driver, function ($app, $name, $config) {
             return $this->createSessionTokenGuard($name, $config);
         });
+    }
+
+    /**
+     * Register console commands.
+     *
+     * @return void
+     */
+    protected function registerCommands()
+    {
+        $this->commands([
+            SessionTokensFlushCommand::class,
+        ]);
     }
 
     /**
