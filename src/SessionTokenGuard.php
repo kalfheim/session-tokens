@@ -84,21 +84,6 @@ class SessionTokenGuard implements StatefulGuard
     }
 
     /**
-     * Get the incoming HTTP request instance.
-     *
-     * @return \Symfony\Component\HttpFoundation\Request
-     * @throws \RuntimeException
-     */
-    public function getRequest()
-    {
-        if (is_null($this->request)) {
-            throw new RuntimeException('An HTTP request has not been set.');
-        }
-
-        return $this->request;
-    }
-
-    /**
      * Set the cookie jar instance.
      *
      * @param  \Illuminate\Contracts\Cookie\QueueingFactory $cookieJar
@@ -110,21 +95,6 @@ class SessionTokenGuard implements StatefulGuard
     }
 
     /**
-     * Get the cookie jar instance.
-     *
-     * @return \Illuminate\Contracts\Cookie\QueueingFactory
-     * @throws \RuntimeException
-     */
-    public function getCookieJar()
-    {
-        if (is_null($this->cookieJar)) {
-            throw new RuntimeException('A cookie jar has not been set.');
-        }
-
-        return $this->cookieJar;
-    }
-
-    /**
      * Set the event dispatcher instance.
      *
      * @param  \Illuminate\Contracts\Events\Dispatcher  $events
@@ -133,31 +103,6 @@ class SessionTokenGuard implements StatefulGuard
     public function setDispatcher(Dispatcher $events)
     {
         $this->events = $events;
-    }
-
-    /**
-     * Get the event dispatcher instance.
-     *
-     * @return \Illuminate\Contracts\Events\Dispatcher
-     * @throws \RuntimeException
-     */
-    public function getDispatcher()
-    {
-        if (is_null($this->events)) {
-            throw new RuntimeException('An event dispatcher has not been set.');
-        }
-
-        return $this->events;
-    }
-
-    /**
-     * Get the configured user provider instance.
-     *
-     * @return \Illuminate\Contracts\Auth\UserProvider
-     */
-    public function getProvider()
-    {
-        return $this->provider;
     }
 
     /**
@@ -360,7 +305,6 @@ class SessionTokenGuard implements StatefulGuard
      */
     public function viaRemember()
     {
-        // @todo: figure out if it really matters what this returns
         return false;
     }
 
@@ -408,13 +352,11 @@ class SessionTokenGuard implements StatefulGuard
      */
     protected function createSessionToken($user)
     {
-        $request = $this->getRequest();
-
         return tap((new SessionToken)->forceFill([
             'secret'             => Str::random(60),
             'authenticatable_id' => $user->getAuthIdentifier(),
-            'ip_address'         => $request->getClientIp(),
-            'user_agent'         => $request->headers->get('User-Agent', null),
+            'ip_address'         => $this->request->getClientIp(),
+            'user_agent'         => $this->request->headers->get('User-Agent', null),
         ]))->save();
     }
 
@@ -427,11 +369,11 @@ class SessionTokenGuard implements StatefulGuard
      */
     protected function storeRecallerInCookieJar(SessionToken $sessionToken)
     {
-        $cookie = $this->getCookieJar()->forever(
+        $cookie = $this->cookieJar->forever(
             $this->getRecallerName(), $sessionToken->recaller
         );
 
-        $this->getCookieJar()->queue($cookie);
+        $this->cookieJar->queue($cookie);
     }
 
     /**
@@ -460,8 +402,8 @@ class SessionTokenGuard implements StatefulGuard
         }
 
         if ($this->request->cookies->has($recallerName)) {
-            $this->getCookieJar()->queue(
-                $this->getCookieJar()->forget($this->getRecallerName())
+            $this->cookieJar->queue(
+                $this->cookieJar->forget($this->getRecallerName())
             );
         }
     }
@@ -474,22 +416,18 @@ class SessionTokenGuard implements StatefulGuard
      */
     protected function touchSessionToken()
     {
-        if (is_null($sessionToken = $this->sessionToken())) {
-            return;
-        }
-
-        $request = $this->getRequest();
+        $sessionToken = $this->sessionToken();
 
         if ($sessionToken->updated_at->diffInSeconds() >= $this->getSessionTokenRefreshRate()) {
             $sessionToken->updated_at = Carbon::now();
         }
 
-        if ($sessionToken->ip_address !== $request->getClientIp()) {
-            $sessionToken->ip_address = $request->getClientIp();
+        if ($sessionToken->ip_address !== $this->request->getClientIp()) {
+            $sessionToken->ip_address = $this->request->getClientIp();
         }
 
-        if ($sessionToken->user_agent !== $request->headers->get('User-Agent', null)) {
-            $sessionToken->user_agent = $request->headers->get('User-Agent', null);
+        if ($sessionToken->user_agent !== $this->request->headers->get('User-Agent', null)) {
+            $sessionToken->user_agent = $this->request->headers->get('User-Agent', null);
         }
 
         if ($sessionToken->isDirty()) {

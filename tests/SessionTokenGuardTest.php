@@ -83,6 +83,19 @@ class SessionTokenGuardTest extends TestCase
     }
 
     /** @test */
+    public function it_should_validate_a_users_credentials()
+    {
+        factory(User::class)->create(['email' => 'foo@example.com']);
+        factory(User::class)->create();
+
+        $guard = Auth::guard();
+
+        $this->assertFalse($guard->validate(['email' => 'foo@example.com', 'password' => 'wrong']));
+        $this->assertFalse($guard->validate(['email' => 'bar@example.com', 'password' => 'secret']));
+        $this->assertTrue($guard->validate(['email' => 'foo@example.com', 'password' => 'secret']));
+    }
+
+    /** @test */
     public function it_works_with_the_be_method()
     {
         $user = factory(User::class)->create();
@@ -241,6 +254,12 @@ class SessionTokenGuardTest extends TestCase
 
         $this->assertSame($this->getTestIp(), $sessionToken->ip_address);
         $this->assertSame($this->getTestUserAgent(), $sessionToken->user_agent);
+    }
+
+    /** @test */
+    public function via_remember_should_return_false()
+    {
+        $this->assertFalse(Auth::guard()->viaRemember());
     }
 
     protected function assertUpdatedAtGetsUpdated($seconds)
