@@ -1,10 +1,9 @@
 <?php
 
-use Faker\Generator;
 use Alfheim\SessionTokenGuard\Tests\User;
 use Alfheim\SessionTokenGuard\SessionToken;
 
-$factory->define(User::class, function (Generator $faker) {
+$factory->define(User::class, function ($faker) {
     static $password;
 
     return [
@@ -14,7 +13,7 @@ $factory->define(User::class, function (Generator $faker) {
     ];
 });
 
-$factory->define(SessionToken::class, function (Generator $faker) {
+$factory->define(SessionToken::class, function ($faker) {
     return [
         'secret' => str_random(60),
         'authenticatable_id' => function () {

@@ -30,8 +30,7 @@
         "symfony/http-foundation": "~3.3"
     },
     "require-dev": {
-        "fzaninotto/faker": "~1.4",
-        "orchestra/testbench": "^3.4",
+        "orchestra/testbench": "^3.5",
         "phpunit/phpunit": "~6.0"
     },
     "extra": {
