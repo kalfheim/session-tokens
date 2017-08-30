@@ -2,6 +2,7 @@
 
 namespace Alfheim\SessionTokenGuard\Tests;
 
+use RuntimeException;
 use Illuminate\Support\Carbon;
 use PHPUnit\Framework\Assert as PHPUnit;
 use Illuminate\Database\Schema\Blueprint;
@@ -37,6 +38,16 @@ abstract class TestCase extends TestbenchTestCase
                 $this->getCookie($cookieName)->isCleared(),
                 "Cookie [{$cookieName}] is expected to be cleared."
             );
+        });
+
+        TestResponse::macro('retrieveCookie', function ($cookieName) {
+            $cookie = $this->getCookie($cookieName);
+
+            if (! $cookie) {
+                throw new RuntimeException('Could not retrieve cookie ['.$cookieName.']');
+            }
+
+            return $cookie;
         });
     }
 

@@ -61,6 +61,26 @@ class SessionTokenGuardTest extends TestCase
     }
 
     /** @test */
+    public function it_should_use_session_config_for_configuring_the_cookie()
+    {
+        resolve('config')->set('session.path', '/some-path');
+        resolve('config')->set('session.secure', true);
+        resolve('config')->set('session.http_only', false);
+        resolve('config')->set('session.same_site', 'strict');
+
+        $user = factory(User::class)->create();
+
+        $cookie = $this->post('login', ['email' => $user->email, 'password' => 'secret', 'remember' => 'yes'])
+             ->assertSee('Great success')
+             ->retrieveCookie(Auth::guard()->getRecallerName());
+
+        $this->assertSame('/some-path', $cookie->getPath());
+        $this->assertTrue($cookie->isSecure());
+        $this->assertFalse($cookie->isHttpOnly());
+        $this->assertSame('strict', $cookie->getSameSite());
+    }
+
+    /** @test */
     public function it_should_authenticate_from_recaller_session()
     {
         $sessionToken = factory(SessionToken::class)->create();

@@ -368,8 +368,12 @@ class SessionTokenGuard implements StatefulGuard
      */
     protected function storeRecallerInCookieJar(SessionToken $sessionToken)
     {
+        $config = config('session');
+
         $cookie = $this->cookieJar->forever(
-            $this->getRecallerName(), $sessionToken->recaller
+            $this->getRecallerName(), $sessionToken->recaller, $config['path'],
+            $config['domain'], $config['secure'] ?? false,
+            $config['http_only'] ?? true, false, $config['same_site'] ?? null
         );
 
         $this->cookieJar->queue($cookie);
