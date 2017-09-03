@@ -8,7 +8,7 @@ use PHPUnit\Framework\Assert as PHPUnit;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\TestResponse;
 use Orchestra\Testbench\TestCase as TestbenchTestCase;
-use Alfheim\SessionTokens\SessionTokenGuardServiceProvider;
+use Alfheim\SessionTokens\SessionTokensServiceProvider;
 
 abstract class TestCase extends TestbenchTestCase
 {
@@ -53,7 +53,7 @@ abstract class TestCase extends TestbenchTestCase
 
     protected function getPackageProviders($app)
     {
-        return [SessionTokenGuardServiceProvider::class];
+        return [SessionTokensServiceProvider::class];
     }
 
     protected function getEnvironmentSetUp($app)

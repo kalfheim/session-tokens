@@ -6,7 +6,7 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Auth\CreatesUserProviders;
 use Alfheim\SessionTokens\Console\SessionTokensFlushCommand;
 
-class SessionTokenGuardServiceProvider extends ServiceProvider
+class SessionTokensServiceProvider extends ServiceProvider
 {
     use CreatesUserProviders;
 
