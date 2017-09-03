@@ -1,11 +1,11 @@
 <?php
 
-namespace Alfheim\SessionTokenGuard\Tests\Console;
+namespace Alfheim\SessionTokens\Tests\Console;
 
 use Illuminate\Support\Carbon;
-use Alfheim\SessionTokenGuard\Tests\User;
-use Alfheim\SessionTokenGuard\SessionToken;
-use Alfheim\SessionTokenGuard\Tests\TestCase;
+use Alfheim\SessionTokens\Tests\User;
+use Alfheim\SessionTokens\SessionToken;
+use Alfheim\SessionTokens\Tests\TestCase;
 
 class SessionTokensFlushCommandTest extends TestCase
 {

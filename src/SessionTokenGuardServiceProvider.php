@@ -1,10 +1,10 @@
 <?php
 
-namespace Alfheim\SessionTokenGuard;
+namespace Alfheim\SessionTokens;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Auth\CreatesUserProviders;
-use Alfheim\SessionTokenGuard\Console\SessionTokensFlushCommand;
+use Alfheim\SessionTokens\Console\SessionTokensFlushCommand;
 
 class SessionTokenGuardServiceProvider extends ServiceProvider
 {
@@ -12,7 +12,7 @@ class SessionTokenGuardServiceProvider extends ServiceProvider
 
     public function boot()
     {
-        $this->registerSessionTokenGuard();
+        $this->registerGuard();
 
         $this->loadMigrationsFrom(dirname(__DIR__).'/migrations');
 
@@ -24,7 +24,7 @@ class SessionTokenGuardServiceProvider extends ServiceProvider
      *
      * @return void
      */
-    protected function registerSessionTokenGuard()
+    protected function registerGuard()
     {
         $driver = $this->getDriverName();
 

@@ -1,6 +1,6 @@
 <?php
 
-namespace Alfheim\SessionTokenGuard\Tests;
+namespace Alfheim\SessionTokens\Tests;
 
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Failed;

@@ -1,8 +1,8 @@
 <?php
 
-namespace Alfheim\SessionTokenGuard\Tests;
+namespace Alfheim\SessionTokens\Tests;
 
-use Alfheim\SessionTokenGuard\SessionToken;
+use Alfheim\SessionTokens\SessionToken;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 
 class User extends Authenticatable

@@ -1,6 +1,6 @@
 <?php
 
-namespace Alfheim\SessionTokenGuard\Tests;
+namespace Alfheim\SessionTokens\Tests;
 
 use RuntimeException;
 use Illuminate\Support\Carbon;
@@ -8,7 +8,7 @@ use PHPUnit\Framework\Assert as PHPUnit;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\TestResponse;
 use Orchestra\Testbench\TestCase as TestbenchTestCase;
-use Alfheim\SessionTokenGuard\SessionTokenGuardServiceProvider;
+use Alfheim\SessionTokens\SessionTokenGuardServiceProvider;
 
 abstract class TestCase extends TestbenchTestCase
 {

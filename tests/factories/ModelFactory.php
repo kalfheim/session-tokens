@@ -1,7 +1,8 @@
 <?php
 
-use Alfheim\SessionTokenGuard\Tests\User;
-use Alfheim\SessionTokenGuard\SessionToken;
+use Faker\Generator;
+use Alfheim\SessionTokens\Tests\User;
+use Alfheim\SessionTokens\SessionToken;
 
 $factory->define(User::class, function ($faker) {
     static $password;

@@ -1,6 +1,6 @@
 <?php
 
-namespace Alfheim\SessionTokenGuard;
+namespace Alfheim\SessionTokens;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -38,7 +38,7 @@ class SessionToken extends Model
      * Find a session token by a recaller string.
      *
      * @param  string  $recaller
-     * @return \Alfheim\SessionTokenGuard\SessionToken|null
+     * @return \Alfheim\SessionTokens\SessionToken|null
      */
     public static function findByRecaller($recaller)
     {

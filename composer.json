@@ -1,6 +1,6 @@
 {
-    "name": "kalfheim/session-token-guard",
-    "description": "@todo",
+    "name": "kalfheim/session-tokens",
+    "description": "Unique, revokable \"remember me\" tokens for Laravel",
     "keywords": ["laravel", "authentication"],
     "type": "library",
     "license": "MIT",
@@ -12,12 +12,12 @@
     ],
     "autoload": {
         "psr-4": {
-            "Alfheim\\SessionTokenGuard\\": "./src"
+            "Alfheim\\SessionTokens\\": "./src"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Alfheim\\SessionTokenGuard\\Tests\\": "./tests"
+            "Alfheim\\SessionTokens\\Tests\\": "./tests"
         }
     },
     "require": {
@@ -36,7 +36,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Alfheim\\SessionTokenGuard\\SessionTokenGuardServiceProvider"
+                "Alfheim\\SessionTokens\\SessionTokensServiceProvider"
             ]
         }
     },

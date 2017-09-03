@@ -1,10 +1,10 @@
 <?php
 
-namespace Alfheim\SessionTokenGuard\Tests;
+namespace Alfheim\SessionTokens\Tests;
 
 use Illuminate\Auth\SessionGuard;
 use Illuminate\Support\Facades\Auth;
-use Alfheim\SessionTokenGuard\SessionTokenGuard;
+use Alfheim\SessionTokens\SessionTokenGuard;
 
 class SessionTokenGuardConfigTest extends TestCase
 {

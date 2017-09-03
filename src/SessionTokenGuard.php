@@ -1,6 +1,6 @@
 <?php
 
-namespace Alfheim\SessionTokenGuard;
+namespace Alfheim\SessionTokens;
 
 use Illuminate\Support\Str;
 use Illuminate\Support\Carbon;
@@ -151,7 +151,7 @@ class SessionTokenGuard implements StatefulGuard
     /**
      * Get the session token related to the incoming HTTP request.
      *
-     * @return \Alfheim\SessionTokenGuard\SessionToken|null
+     * @return \Alfheim\SessionTokens\SessionToken|null
      */
     public function sessionToken()
     {
@@ -347,7 +347,7 @@ class SessionTokenGuard implements StatefulGuard
      * Create a fresh session token for new logins.
      *
      * @param  \Illuminate\Contracts\Auth\Authenticatable  $user
-     * @return \Alfheim\SessionTokenGuard\SessionToken
+     * @return \Alfheim\SessionTokens\SessionToken
      */
     protected function createSessionToken($user)
     {
@@ -363,7 +363,7 @@ class SessionTokenGuard implements StatefulGuard
      * Store the session token's recaller string in a cookie and queue it. This
      * is only done when the "remember me" option is used.
      *
-     * @param \Alfheim\SessionTokenGuard\SessionToken  $sessionToken
+     * @param \Alfheim\SessionTokens\SessionToken  $sessionToken
      * @return void
      */
     protected function storeRecallerInCookieJar(SessionToken $sessionToken)
@@ -383,7 +383,7 @@ class SessionTokenGuard implements StatefulGuard
      * Store the session token's recaller string in the local session. This is
      * the method used when the "remember me" option is *not* used.
      *
-     * @param \Alfheim\SessionTokenGuard\SessionToken  $sessionToken
+     * @param \Alfheim\SessionTokens\SessionToken  $sessionToken
      * @return void
      */
     protected function storeRecallerInSession(SessionToken $sessionToken)

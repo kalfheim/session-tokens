@@ -1,10 +1,10 @@
 <?php
 
-namespace Alfheim\SessionTokenGuard\Console;
+namespace Alfheim\SessionTokens\Console;
 
 use Illuminate\Support\Carbon;
 use Illuminate\Console\Command;
-use Alfheim\SessionTokenGuard\SessionToken;
+use Alfheim\SessionTokens\SessionToken;
 
 class SessionTokensFlushCommand extends Command
 {

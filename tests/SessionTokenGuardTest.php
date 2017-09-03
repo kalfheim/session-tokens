@@ -1,11 +1,12 @@
 <?php
 
-namespace Alfheim\SessionTokenGuard\Tests;
+namespace Alfheim\SessionTokens\Tests;
 
 use Illuminate\Support\Carbon;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Support\Facades\Auth;
-use Alfheim\SessionTokenGuard\SessionToken;
+use Alfheim\SessionTokens\SessionToken;
+use Alfheim\SessionTokens\SessionTokenGuard;
 use Symfony\Component\HttpFoundation\Request;
 
 class SessionTokenGuardTest extends TestCase
@@ -13,7 +14,7 @@ class SessionTokenGuardTest extends TestCase
     /** @test */
     public function it_should_use_the_correct_guard()
     {
-        $this->get('guard')->assertSee('Alfheim\SessionTokenGuard\SessionTokenGuard');
+        $this->get('guard')->assertSee(SessionTokenGuard::class);
     }
 
     /** @test */
