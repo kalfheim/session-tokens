@@ -1,6 +1,5 @@
 <?php
 
-use Faker\Generator;
 use Alfheim\SessionTokens\Tests\User;
 use Alfheim\SessionTokens\SessionToken;
 
