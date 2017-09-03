@@ -4,6 +4,7 @@ namespace Alfheim\SessionTokens;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Auth\CreatesUserProviders;
+use Alfheim\SessionTokens\Console\MakeSessionTokensCommand;
 use Alfheim\SessionTokens\Console\SessionTokensFlushCommand;
 
 class SessionTokensServiceProvider extends ServiceProvider

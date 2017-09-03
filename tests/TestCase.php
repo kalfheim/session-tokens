@@ -87,9 +87,15 @@ abstract class TestCase extends TestbenchTestCase
 
     protected function setUpRoutes()
     {
+        // @todo: switch to the "web" middleware group when the commit to include
+        // AddQueuedCookiesToResponse in orchestra testbench is tagged
         $this->app['router']->middleware([
-            'web',
+            \Illuminate\Cookie\Middleware\EncryptCookies::class,
             \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
+            \Illuminate\Session\Middleware\StartSession::class,
+            \Illuminate\View\Middleware\ShareErrorsFromSession::class,
+            \Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class,
+            \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ])->group(__DIR__.'/Fixtures/routes.php');
     }
 }

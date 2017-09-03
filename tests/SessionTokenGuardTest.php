@@ -181,6 +181,23 @@ class SessionTokenGuardTest extends TestCase
     }
 
     /** @test */
+    public function it_should_clear_the_session_recaller_when_it_is_invalid()
+    {
+        app('session.store')->put(Auth::guard()->getRecallerName(), 'foobar_invalid');
+
+        $this->get('me')
+             ->assertSessionMissing(Auth::guard()->getRecallerName());
+    }
+
+    /** @test */
+    public function it_should_clear_the_cookie_recaller_when_it_is_invalid()
+    {
+        $this->call('GET', 'me', [], [
+            Auth::guard()->getRecallerName() => encrypt('foobar_invalid'),
+        ])->assertCookieIsCleared(Auth::guard()->getRecallerName());
+    }
+
+    /** @test */
     public function it_should_log_in_once_without_state_using_credentials()
     {
         $user = factory(User::class)->create();

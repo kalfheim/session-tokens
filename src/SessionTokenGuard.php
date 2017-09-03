@@ -48,7 +48,7 @@ class SessionTokenGuard implements StatefulGuard
      *
      * @var \Illuminate\Contracts\Cookie\QueueingFactory
      */
-    protected $cookie;
+    protected $cookieJar;
 
     /**
      * The event dispatcher.
@@ -159,16 +159,62 @@ class SessionTokenGuard implements StatefulGuard
             return $this->sessionToken;
         }
 
-        $recallerName = $this->getRecallerName();
+        $sessionToken = null;
 
-        $recallerValue = $this->request->cookies->get($recallerName) ?:
-                         $this->session->get($recallerName);
+        foreach ($this->getRecallersArray() as $recaller) {
+            if (! $recaller->hasData()) {
+                continue;
+            }
 
-        if (! $recallerValue) {
-            return $this->sessionToken = null;
+            if (
+                ! is_null($sessionToken) ||
+                ! $sessionToken = $recaller->retrieveSessionToken()
+            ) {
+                $recaller->clearData();
+            }
         }
 
-        return $this->sessionToken = SessionToken::findByRecaller($recallerValue);
+        return $this->sessionToken = $sessionToken;
+    }
+
+    /**
+     * Get an instance of the session recaller.
+     *
+     * @return \Alfheim\SessionTokens\Recaller\SessionRecaller
+     */
+    protected function getSessionRecaller()
+    {
+        return new Recallers\SessionRecaller(
+            $this->getRecallerName(),
+            $this->session
+        );
+    }
+
+    /**
+     * Get an instance of the cookie recaller.
+     *
+     * @return \Alfheim\SessionTokens\Recaller\CookieRecaller
+     */
+    protected function getCookieRecaller()
+    {
+        return new Recallers\CookieRecaller(
+            $this->getRecallerName(),
+            $this->cookieJar,
+            $this->request
+        );
+    }
+
+    /**
+     * Get an array containing instances of the session and cookie recallers.
+     *
+     * @return \Alfheim\SessionTokens\Recaller\RecallerInterface[]
+     */
+    protected function getRecallersArray()
+    {
+        return [
+            $this->getSessionRecaller(),
+            $this->getCookieRecaller(),
+        ];
     }
 
     /**
@@ -239,13 +285,11 @@ class SessionTokenGuard implements StatefulGuard
      */
     public function login(Authenticatable $user, $remember = false)
     {
-        $sessionToken = $this->createSessionToken($user);
+        $recaller = $remember ?
+            $this->getCookieRecaller() :
+            $this->getSessionRecaller();
 
-        if ($remember) {
-            $this->storeRecallerInCookieJar($sessionToken);
-        } else {
-            $this->storeRecallerInSession($sessionToken);
-        }
+        $recaller->storeData($this->createSessionToken($user)->recaller);
 
         $this->fireLoginEvent($user, $remember);
 
@@ -332,6 +376,20 @@ class SessionTokenGuard implements StatefulGuard
     }
 
     /**
+     * Clear some data after logging out.
+     *
+     * @return void
+     */
+    protected function clearUserDataFromStorage()
+    {
+        foreach ($this->getRecallersArray() as $recaller) {
+            if ($recaller->hasData()) {
+                $recaller->clearData();
+            }
+        }
+    }
+
+    /**
      * Determine if the user matches the credentials.
      *
      * @param  mixed  $user
@@ -357,58 +415,6 @@ class SessionTokenGuard implements StatefulGuard
             'ip_address'         => $this->request->getClientIp(),
             'user_agent'         => $this->request->headers->get('User-Agent', null),
         ]))->save();
-    }
-
-    /**
-     * Store the session token's recaller string in a cookie and queue it. This
-     * is only done when the "remember me" option is used.
-     *
-     * @param \Alfheim\SessionTokens\SessionToken  $sessionToken
-     * @return void
-     */
-    protected function storeRecallerInCookieJar(SessionToken $sessionToken)
-    {
-        $config = config('session');
-
-        $cookie = $this->cookieJar->forever(
-            $this->getRecallerName(), $sessionToken->recaller, $config['path'],
-            $config['domain'], $config['secure'] ?? false,
-            $config['http_only'] ?? true, false, $config['same_site'] ?? null
-        );
-
-        $this->cookieJar->queue($cookie);
-    }
-
-    /**
-     * Store the session token's recaller string in the local session. This is
-     * the method used when the "remember me" option is *not* used.
-     *
-     * @param \Alfheim\SessionTokens\SessionToken  $sessionToken
-     * @return void
-     */
-    protected function storeRecallerInSession(SessionToken $sessionToken)
-    {
-        $this->session->put($this->getRecallerName(), $sessionToken->recaller);
-    }
-
-    /**
-     * Clear some data after logging out.
-     *
-     * @return void
-     */
-    protected function clearUserDataFromStorage()
-    {
-        $recallerName = $this->getRecallerName();
-
-        if ($this->session->has($recallerName)) {
-            $this->session->remove($recallerName);
-        }
-
-        if ($this->request->cookies->has($recallerName)) {
-            $this->cookieJar->queue(
-                $this->cookieJar->forget($this->getRecallerName())
-            );
-        }
     }
 
     /**
