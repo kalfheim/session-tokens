@@ -121,7 +121,7 @@ class MakeSessionTokensCommandTest extends TestCase
 
     protected function getBaseController()
     {
-        return "<?php
+        return '<?php
 
 namespace App\\Http\\Controllers;
 
@@ -134,6 +134,6 @@ class Controller extends BaseController
 {
     use AuthorizesRequests, DispatchesJobs, ValidatesRequests;
 }
-";
+';
     }
 }
