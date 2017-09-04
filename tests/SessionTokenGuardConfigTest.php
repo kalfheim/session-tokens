@@ -12,7 +12,7 @@ class SessionTokenGuardConfigTest extends TestCase
     {
         parent::getEnvironmentSetUp($app);
 
-        $app['config']->set('auth.session_token_guard_driver', 'sessionTokenDriver');
+        $app['config']->set('auth.session_tokens.driver_name', 'sessionTokenDriver');
 
         $app['config']->set('auth.guards.sessionToken', [
             'driver'   => 'sessionTokenDriver',

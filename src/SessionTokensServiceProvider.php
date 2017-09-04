@@ -74,6 +74,6 @@ class SessionTokensServiceProvider extends ServiceProvider
      */
     protected function getDriverName()
     {
-        return $this->app['config']->get('auth.session_token_guard_driver', 'session');
+        return $this->app['config']->get('auth.session_tokens.driver_name', 'session');
     }
 }
