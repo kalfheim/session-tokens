@@ -1,0 +1,49 @@
+<?php
+
+namespace {{namespace}}Http\Controllers;
+
+use Illuminate\Http\Request;
+use Alfheim\SessionTokens\SessionToken;
+
+class UserSessionTokensController extends Controller
+{
+    /**
+     * Create a new controller instance.
+     *
+     * @return void
+     */
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+
+    /**
+     * Show active session tokens for the authenticated user.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function index(Request $request)
+    {
+        return view('session-tokens.index', [
+            'sessions' => $request->user()->sessionTokens()->latest('updated_at')->get(),
+            'currentSession' => auth()->guard()->sessionToken(),
+        ]);
+    }
+
+    /**
+     * Revoke the session token with the given id.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function destroy($id, Request $request)
+    {
+        $sessionToken = SessionToken::query()
+            ->whereId($id)
+            ->whereAuthenticatableId($request->user()->id)
+            ->firstOrFail();
+
+        $sessionToken->delete();
+
+        return redirect()->back()->withStatus('The session has been revoked.');
+    }
+}

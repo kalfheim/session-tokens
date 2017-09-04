@@ -41,6 +41,7 @@ class SessionTokensServiceProvider extends ServiceProvider
     protected function registerCommands()
     {
         $this->commands([
+            MakeSessionTokensCommand::class,
             SessionTokensFlushCommand::class,
         ]);
     }

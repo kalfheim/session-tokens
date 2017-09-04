@@ -1,0 +1,56 @@
+@extends('layouts.app')
+
+@section('content')
+<div class="container">
+    <div class="row">
+        <div class="col-md-10 col-md-offset-1">
+            <div class="panel panel-default">
+                <div class="panel-heading">Authenticated Devices</div>
+
+                <div class="panel-body">
+
+                    @if (session('status'))
+                        <div class="alert alert-success">
+                            {{ session('status') }}
+                        </div>
+                    @endif
+
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>IP Address</th>
+                                <th>Device</th>
+                                <th>Last Accessed</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($sessions as $session)
+                                <tr>
+                                    <td><b>{{ $session->ip_address }}</b></td>
+                                    <td title="{{ $session->user_agent }}">
+                                        {{ mb_strimwidth($session->user_agent, 0, 50, '...') }}
+                                    </td>
+                                    <td title="{{ $session->updated_at }}">{{ $session->updated_at->diffForHumans() }}</td>
+                                    <td class="text-right">
+                                        @if ($session->id === $currentSession->id)
+                                            <small class="text-muted">it's you!</small>
+                                        @else
+                                            <form method="post" action="/session-tokens/{{ $session->id }}">
+                                                {{ csrf_field() }}
+                                                {{ method_field('delete') }}
+                                                <button class="btn btn-default btn-xs" type="submit">Revoke</button>
+                                            </form>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection
